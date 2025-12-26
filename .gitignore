@@ -1,0 +1,8 @@
+.env
+__pycache__/
+*.log
+sec_links.txt
+sec_links.json
+sec_links.csv
+cik_cache.json
+filing_stats.json
