@@ -524,16 +524,17 @@ class SECCallMonitor:
                 continue
             
             # Uzunluk ve yapi kontrolu
-            if len(sentence) < 30 or len(sentence) > 500: continue
+            if len(sentence) < 30 or len(sentence) > 700: continue
             
             # Baslik gibi mi? (Tum harfler buyukse veya sonu noktayla bitmiyorsa supheli)
             # Ama bazen basliklarda da onemli bilgi olabilir, o yuzden sadece cok kisa basliklari eliyoruz
             
             # Gelecek zaman veya kesinlik kontrolu
-            strong_indicators = ['will', 'announces', 'notice', 'planned', 'scheduled', 'date']
+            # 'announces' -> 'announce' ( catch announced), +notified, intention, elected, decided, proposed, etc.
+            strong_indicators = ['will', 'announce', 'notice', 'planned', 'scheduled', 'date', 'notified', 'intention', 'elected', 'proposed', 'decided', 'declared']
             if not any(i in s_lower for i in strong_indicators):
-                # Eger "notice of redemption" kalibi varsa kesinlik vardir
-                if "notice of redemption" not in s_lower:
+                # Eger "notice of" veya "notif" kalibi varsa kesinlik vardir (daha esnek)
+                if "notice of" not in s_lower and "notif" not in s_lower:
                     continue
             
             # Dislama kelimeleri (ihtimal belirtenler)
