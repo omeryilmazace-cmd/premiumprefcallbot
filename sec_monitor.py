@@ -502,12 +502,13 @@ class SECCallMonitor:
         
         keywords = [
             'redeem', 'redemption', 'call for redemption', 'retire',
-            'full call', 'partial call', 'notice of call',
-            'tender offer', 'offer to purchase', 'repurchase', 'buyback',
-            'dividend reinstatement', 'authorized a new',
-            'special dividend', 'accumulated', 'unpaid', 'arrears', 'catch-up'
+            'full call', 'partial call', 'notice of call', 'call',
+            'tender offer', 'offer to purchase', 'repurchase', 'buyback', 'tender',
+            'dividend reinstatement', 'authorized a new', 'dividend', 'distribution',
+            'special dividend', 'accumulated', 'unpaid', 'arrears', 'catch-up',
+            'liquidation', 'delisting', 'suspension', 'resumption'
         ]
-        exclude_phrases = ['may redeem', 'option to redeem', 'right to redeem', 'upon redemption', 'subject to redemption']
+        exclude_phrases = ['may redeem', 'option to redeem', 'right to redeem', 'upon redemption', 'subject to redemption', 'will call a conference', 'call will be']
         
         for sentence in sentences:
             s_lower = sentence.lower()
@@ -515,23 +516,28 @@ class SECCallMonitor:
             # Anahtar kelime kontrolu
             if not any(k in s_lower for k in keywords): continue
 
-            # HEDEF KITLE KONTROLU (Common Stock'u ele, sadece Preferred/Debt)
+            # HEDEF KITLE KONTROLU (Esnek: Preferred, Debt, Stock, vb)
             context_keywords = [
                 'preferred', 'preference', 'depositary', 'series', 'notes', 
-                'senior', 'subordinated', 'debentures', '%'
+                'senior', 'subordinated', 'debentures', '%', 'stock', 'shares',
+                'units', 'capital', 'security', 'bond', 'dividend'
             ]
             if not any(ctx in s_lower for ctx in context_keywords):
                 continue
             
-            # Uzunluk ve yapi kontrolu
-            if len(sentence) < 30 or len(sentence) > 700: continue
+            # Uzunluk ve yapi kontrolu (Daha uzun cumlelere izin ver)
+            if len(sentence) < 25 or len(sentence) > 1000: continue
             
             # Baslik gibi mi? (Tum harfler buyukse veya sonu noktayla bitmiyorsa supheli)
             # Ama bazen basliklarda da onemli bilgi olabilir, o yuzden sadece cok kisa basliklari eliyoruz
             
             # Gelecek zaman veya kesinlik kontrolu
             # 'announces' -> 'announce' ( catch announced), +notified, intention, elected, decided, proposed, etc.
-            strong_indicators = ['will', 'announce', 'notice', 'planned', 'scheduled', 'date', 'notified', 'intention', 'elected', 'proposed', 'decided', 'declared']
+            strong_indicators = [
+                'will', 'announce', 'notice', 'planned', 'scheduled', 'date', 
+                'notified', 'intention', 'elected', 'proposed', 'decided', 
+                'declared', 'announcement', 'agreement', 'vote', 'board'
+            ]
             if not any(i in s_lower for i in strong_indicators):
                 # Eger "notice of" veya "notif" kalibi varsa kesinlik vardir (daha esnek)
                 if "notice of" not in s_lower and "notif" not in s_lower:
