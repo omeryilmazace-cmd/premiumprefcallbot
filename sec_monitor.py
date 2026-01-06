@@ -156,8 +156,8 @@ Ozellikle sunlari ara:
 
 === CEVAP FORMATI ===
 Kisa ve net olmali.
-Tur: [REDEMPTION / TENDER OFFER / REPURCHASE / DIVIDEND / SUPHELI]
-Detay: [Neyi, ne zaman, ne fiyata? Kisa ozet.]
+Tur: [REDEMPTION / TENDER OFFER / REPURCHASE / DIVIDEND / CREDIT RATING / SUPHELI]
+Detay: [Neyi, ne zaman, ne fiyata veya yeni reyting ne? Kisa ozet.]
 Kanit: [Metinden kisa bir alinti]
 
 Eger onemli bir gelisme yoksa "YOK" de.
@@ -506,7 +506,9 @@ class SECCallMonitor:
             'tender offer', 'offer to purchase', 'repurchase', 'buyback', 'tender',
             'dividend reinstatement', 'authorized a new', 'dividend', 'distribution',
             'special dividend', 'accumulated', 'unpaid', 'arrears', 'catch-up',
-            'liquidation', 'delisting', 'suspension', 'resumption'
+            'liquidation', 'delisting', 'suspension', 'resumption',
+            "moody's", "s&p", "fitch", "standard & poor's", "downgrade", "upgrade",
+            "credit rating", "rating outlook", "nrsro", "credit quality"
         ]
         exclude_phrases = ['may redeem', 'option to redeem', 'right to redeem', 'upon redemption', 'subject to redemption', 'will call a conference', 'call will be']
         
@@ -903,7 +905,7 @@ class SECCallMonitor:
                 if datetime.now().date() > self.last_daily_report:
                     self._send_daily_report()
                     
-                time.sleep(15)
+                time.sleep(1) # Frequency increased for maximum speed
             except KeyboardInterrupt:
                 logger.info("Bot stopped by user")
                 break
