@@ -243,6 +243,12 @@ class SECCallMonitor:
         self.links_json = self.data_dir / "sec_links.json" 
         self.links_csv = self.data_dir / "sec_links.csv"
         
+        # Harici Beslemeler (Credit Rating Updates)
+        self.external_feeds = [
+            "https://ir.moodys.com/feed/PressRelease.rss",
+            "https://investor.spglobal.com/feed/PressRelease.rss"
+        ]
+        
         if not self.links_csv.exists():
             with open(self.links_csv, 'w', encoding='utf-8') as f:
                 f.write("Timestamp,Company,Ticker,Form,Alert_Type,Link,Details\n")
@@ -666,8 +672,55 @@ class SECCallMonitor:
                 
             self._cleanup()
             
+            # Harici Beslemeleri Kontrol Et
+            self._check_external_feeds()
+            
         except Exception as e:
             logger.error(f"Main loop error: {e}")
+
+    def _check_external_feeds(self):
+        """Moody's, S&P gibi harici RSS beslemelerini kontrol eder"""
+        for url in self.external_feeds:
+            try:
+                content = self._fetch_feed_url(url)
+                if not content: continue
+                
+                root = ET.fromstring(content)
+                # RSS 2.0 formatı (channel -> item)
+                items = root.findall(".//item")
+                
+                for item in items:
+                    title = item.find("title").text
+                    link = item.find("link").text
+                    pub_date = item.find("pubDate").text if item.find("pubDate") is not None else ""
+                    
+                    entry_id = f"ext_{link}_{title}"
+                    if entry_id in self.processed: continue
+                    
+                    self.processed.add(entry_id)
+                    
+                    # Başlıkta reyting anahtar kelimeleri veya izlenen ticker var mı?
+                    title_lower = title.lower()
+                    rating_keywords = ["moody's", "s&p", "fitch", "downgrade", "upgrade", "rating", "outlook"]
+                    
+                    # İzlenen bir ticker geçiyor mu?
+                    mentioned_ticker = next((t for t in self.active_tickers if t.lower() in title_lower), None)
+                    is_rating_news = any(k in title_lower for k in rating_keywords)
+                    
+                    if mentioned_ticker or is_rating_news:
+                        msg = f"🔔 <b>DIŞ HABER (KREDİ DERECELENDİRME vb.)</b>\n"
+                        msg += f"<b>Kaynak:</b> {url.split('/')[2]}\n"
+                        msg += f"<b>Başlık:</b> {title}\n"
+                        if mentioned_ticker:
+                            msg += f"<b>Tespit Edilen Ticker:</b> #{mentioned_ticker}\n"
+                        msg += f"<b>Tarih:</b> {pub_date}\n"
+                        msg += f"<b>Link:</b> <a href='{link}'>Haberi Oku</a>"
+                        
+                        self._send_msg(msg)
+                        logger.info(f"External hit found: {title}")
+                        
+            except Exception as e:
+                logger.error(f"External feed error {url}: {e}")
 
     def _cleanup(self):
         if len(self.processed) > 5000:
@@ -905,7 +958,7 @@ class SECCallMonitor:
                 if datetime.now().date() > self.last_daily_report:
                     self._send_daily_report()
                     
-                time.sleep(1) # Frequency increased for maximum speed
+                time.sleep(5) # Safe and fast interval (SEC compliant)
             except KeyboardInterrupt:
                 logger.info("Bot stopped by user")
                 break
