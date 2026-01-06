@@ -703,12 +703,31 @@ class SECCallMonitor:
                     title_lower = title.lower()
                     rating_keywords = ["moody's", "s&p", "fitch", "downgrade", "upgrade", "rating", "outlook"]
                     
-                    # İzlenen bir ticker geçiyor mu?
-                    mentioned_ticker = next((t for t in self.active_tickers if t.lower() in title_lower), None)
+                    # 1. İzlenen bir ticker geçiyor mu? (Öncelikli)
+                    mentioned_ticker = next((t for t in self.active_tickers if f" {t.lower()} " in f" {title_lower} " or title_lower.startswith(f"{t.lower()} ") or title_lower.endswith(f" {t.lower()} ")), None)
+                    
+                    # 2. Eğer izlenenlerde yoksa, FULL_TICKER_LIST içinde var mı? 
+                    # (Botun ana listesinde olan herhangi bir şirket için kritik haber olabilir)
+                    if not mentioned_ticker:
+                        global_ticker = next((t for t in FULL_TICKER_LIST if f" {t.lower()} " in f" {title_lower} " or title_lower.startswith(f"{t.lower()} ") or title_lower.endswith(f" {t.lower()} ")), None)
+                        if global_ticker:
+                            mentioned_ticker = global_ticker
+
                     is_rating_news = any(k in title_lower for k in rating_keywords)
                     
                     if mentioned_ticker or is_rating_news:
-                        msg = f"🔔 <b>DIŞ HABER (KREDİ DERECELENDİRME vb.)</b>\n"
+                        # Eğer reyting haberi ise ama ticker bulunamadıysa AI'ya sor (Opsiyonel ama akıllı)
+                        if is_rating_news and not mentioned_ticker:
+                            # AI analizi ile şirket adını ve ticker'ı bulmaya çalış
+                            ai_hint = self.ai_analyzer.analyze_debt_redemption("External News", "Unknown", "RSS", title)
+                            if "YOK" not in ai_hint:
+                                msg_header = "🔔 <b>KRİTİK REYTİNG HABERİ (ŞİRKET TESPİT EDİLDİ)</b>\n"
+                            else:
+                                continue # Önemli değilse atla
+                        else:
+                            msg_header = f"🔔 <b>DIŞ HABER ({mentioned_ticker if mentioned_ticker else 'Piyasa Geneli'})</b>\n"
+
+                        msg = msg_header
                         msg += f"<b>Kaynak:</b> {url.split('/')[2]}\n"
                         msg += f"<b>Başlık:</b> {title}\n"
                         if mentioned_ticker:
