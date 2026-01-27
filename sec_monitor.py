@@ -280,14 +280,21 @@ class SECCallMonitor:
                         
                     # 2. Kok Ticker Bulma (Pref Hisseler icin)
                     # Ornek: METCZ -> MET, HWM-P -> HWM
-                    # Tire veya noktadan bolmeyi dene
                     root = re.split(r'[-.]', t_upper)[0]
                     if len(root) < len(t_upper) and root in mapping:
-                        # Ana sirket CIK'ini kullaniyoruz ama Ticker olarak kullanicinin verdigini (Pref) sakliyoruz
                         final_companies.append(Company(mapping[root]['cik'], t_upper, mapping[root]['name']))
                         continue
                         
-                    # 3. Son caresiz 4. harfi atma (bazi eski kisaltmalar)
+                    # 3. YENI: Flexible Prefix Match (PRIF -> PRIF-PD)
+                    found_flexible = False
+                    for sec_ticker, data in mapping.items():
+                        if sec_ticker.startswith(f"{t_upper}-") or sec_ticker.startswith(f"{t_upper}."):
+                            final_companies.append(Company(data['cik'], t_upper, data['name']))
+                            found_flexible = True
+                            break
+                    if found_flexible: continue
+
+                    # 4. Son caresiz 4. harfi atma (bazi eski kisaltmalar)
                     if len(t_upper) > 3 and t_upper[:-1] in mapping:
                          root = t_upper[:-1]
                          final_companies.append(Company(mapping[root]['cik'], t_upper, mapping[root]['name']))
