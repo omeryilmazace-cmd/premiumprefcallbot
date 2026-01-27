@@ -954,10 +954,27 @@ class SECCallMonitor:
         try:
             r = requests.get("https://www.sec.gov/files/company_tickers.json", headers=self.headers, timeout=10)
             if r.status_code == 200:
-                for v in r.json().values():
+                data = r.json().values()
+                
+                # 1. Exact Match
+                for v in data:
                     if v['ticker'] == ticker:
                         return str(v['cik_str']).zfill(10)
-        except: pass
+                        
+                # 2. Flexible Match (e.g. User: PRIF -> SEC: PRIF-PD)
+                # Or User: PRIF-PD -> SEC: PRIF (Less likely but possible)
+                for v in data:
+                    sec_ticker = v['ticker']
+                    # Check if one is the prefix of the other with a separator
+                    if sec_ticker.startswith(f"{ticker}-") or sec_ticker.startswith(f"{ticker}."):
+                        return str(v['cik_str']).zfill(10)
+                    
+                    # Reverse check? Maybe not needed for scanning but safe to add
+                    if ticker.startswith(f"{sec_ticker}-") or ticker.startswith(f"{sec_ticker}."):
+                        return str(v['cik_str']).zfill(10)
+                        
+        except Exception as e:
+            logger.error(f"Get CIK error: {e}")
         return None
 
     def run(self):
