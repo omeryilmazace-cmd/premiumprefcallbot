@@ -348,7 +348,7 @@ class SECCallMonitor:
                 matches = re.findall(r'href="([^"]+\.htm)"', r.text)
                 for m in matches:
                     if 'ix?doc=' in m: continue # ixbrl viewer linki degil
-                    if m.endswith('-index.htm'): continue
+                    if m.endswith('-index.htm') or m == '/index.htm': continue
                     # Form dosyasini tahmin et
                     full_url = urljoin(url, m)
                     return self._fetch_content_direct(full_url)
